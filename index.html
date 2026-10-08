@@ -86,7 +86,7 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 .sheet [contenteditable]:hover{background:#f6f1e1}
 .sheet p{margin:0}
 .to,.subj{font-weight:700;margin:0 0 .45em}
-.subj{margin-bottom:.9em}
+.subj{margin-bottom:.9em;text-align:center}
 .hello{font-weight:700;margin:0 0 .5em}
 .body{white-space:pre-wrap;text-align:justify;line-height:2.05;margin:0 0 .5em}
 .tblwrap{margin:.3em 0 .8em}
@@ -95,7 +95,7 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 .tblwrap th{background:#ececec;font-weight:700}
 .tblwrap th.n,.tblwrap td.n{width:11mm}
 .tblwrap tr{page-break-inside:avoid;break-inside:avoid}
-.close{font-weight:700;margin:.2em 0 .5em}
+.close{font-weight:700;margin:.2em 0 .5em;text-align:center}
 .sign{display:flex;justify-content:flex-end;margin-top:1.4em;break-inside:avoid}
 .sign div{text-align:center;font-weight:700;line-height:1.8;min-width:60mm}
 .copy{margin-top:auto;padding-top:1.6em;font-size:.78em;font-weight:700;line-height:1.7;break-inside:avoid}
@@ -33820,7 +33820,7 @@ async function makeDoc(){
 
   const kids=[
     para($('pvTo').innerText.trim(),{bold:true,after:Math.round(160*k),before:Math.round(Math.max(0,tm-2)*567)}),
-    para($('pvSubj').innerText.trim(),{bold:true,after:Math.round(360*k)}),
+    para($('pvSubj').innerText.trim(),{bold:true,align:AlignmentType.CENTER,after:Math.round(360*k)}),
     para('تحية طيبة ...',{bold:true,after:Math.round(240*k)}),
   ];
   const lines=$('pvBody').innerText.trim().split(/\n+/).map(x=>x.trim()).filter(Boolean);
@@ -33842,7 +33842,7 @@ async function makeDoc(){
       borders:{top:B,bottom:B,left:B,right:B,insideHorizontal:B,insideVertical:B},rows:trs}));
     kids.push(para('',{after:Math.round(120*k)}));
   }
-  kids.push(para($('pvClose').innerText.trim(),{bold:true,after:Math.round(400*k),keepNext:true}));
+  kids.push(para($('pvClose').innerText.trim(),{bold:true,align:AlignmentType.CENTER,after:Math.round(400*k),keepNext:true}));
 
   // كتلة التوقيع (في الجهة اليسرى)
   const sig=[];
