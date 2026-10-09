@@ -89,6 +89,10 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 .subj{margin-bottom:.9em;text-align:center}
 .hello{font-weight:700;margin:0 0 .5em}
 .body{white-space:pre-wrap;text-align:justify;line-height:2.05;margin:0 0 .5em}
+.att{font-weight:700;font-size:.9em;margin:.1em 0 .4em;white-space:pre-wrap;text-align:right}
+.att:empty{display:none}
+.sepmark{text-align:center;color:#a2762a;font:700 12px Tajawal,sans-serif;border-top:2px dashed #d8c9a3;margin-top:2em;padding-top:.5em}
+#pvTblSep:empty,.sepmark.off{display:none}
 .tblwrap{margin:.3em 0 .8em}
 .tblwrap table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:.88em;line-height:1.55}
 .tblwrap th,.tblwrap td{border:1px solid #000;padding:2px 6px;text-align:center;vertical-align:middle;word-break:break-word}
@@ -110,6 +114,8 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
   .sheet{zoom:1!important;width:auto;min-height:0;box-shadow:none;background-image:none;display:block}
   .sheet [contenteditable]{padding:0;margin:0;background:none!important}
   .copy{margin-top:2em}
+  .sepmark{display:none!important}
+  #pvTblSep{break-before:page;margin-top:0}
 }
 </style>
 <style id="dyn"></style>
@@ -147,10 +153,13 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 
     <div class="extra" id="extra"></div>
 
+    <div id="attBox" style="display:none"><label for="att">المرفقات <small>(كل سطر مرفق)</small></label><textarea id="att" rows="2"></textarea></div>
+
     <div class="tblbox" id="tblBox">
       <div class="top"><input type="checkbox" id="tblOn"><label for="tblOn" style="margin:0;cursor:pointer">إضافة جدول بالأسماء</label></div>
       <div id="tblCfg" style="display:none">
         <div class="hint" id="tblHint">عناوين الأعمدة قابلة للتعديل، والترقيم تلقائي. اضغط Enter في آخر خلية لإضافة صف جديد.</div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:500;font-size:13px;margin:8px 0 0"><input type="checkbox" id="tblSep" style="width:auto;accent-color:var(--brand)"> وضع الجدول في صفحة مرفقة منفصلة (قائمة طيا)</label>
         <div id="tblEd"></div>
         <div class="mini">
           <button type="button" id="addRow">＋ صف</button>
@@ -215,12 +224,15 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
       <div class="sheet" id="sheet">
         <p class="to" id="pvTo" contenteditable="true"></p>
         <p class="subj" id="pvSubj" contenteditable="true"></p>
-        <p class="hello">تحية طيبة ...</p>
+        <p class="hello" id="pvHello" contenteditable="true">تحية طيبة ...</p>
         <p class="body" id="pvBody" contenteditable="true"></p>
         <div class="tblwrap" id="pvTbl"></div>
         <p class="close" id="pvClose" contenteditable="true"></p>
+        <p class="att" id="pvAtt" contenteditable="true"></p>
         <div class="sign"><div><span id="pvDirName"></span><br id="pvBr"><span id="pvDirTitle"></span><br><span id="pvDate"></span></div></div>
         <div class="copy">صورة منه الى /<span id="pvCopies"></span></div>
+        <div class="sepmark" id="pvSepMark">— صفحة القائمة المرفقة —</div>
+        <div class="tblwrap" id="pvTblSep"></div>
       </div>
     </div>
   </section>
@@ -33421,6 +33433,10 @@ const R={why:[
 ]};
 const WHY={k:'why',l:'سبب الطلب',sel:R.why};
 const wy=v=>v.why?`، ${v.why}`:'';
+const LIV={k:'liv',l:'التعليل',sel:[['ظروف صعبة + دخل محدود','ولكون ظروف{h} المعيشية صعبة ومن ذوي الدخل المحدود'],['ظروف معيشية صعبة','وظروف{h} المعيشية صعبة'],['من ذوي الدخل المحدود','وكون{h} من ذوي الدخل المحدود'],['بدون تعليل','']]};
+const LIV2={k:'liv2',l:'الظروف',sel:[['ظروف معيشية صعبة','وظروف{h} المعيشية صعبة'],['بدون','']]};
+const SHK='ولكم جزيل الشكر والتقدير ...';
+
 const T=[
  {id:'health_exempt',g:'وزارة الصحة',to:'وزارة الصحة – مكتب الوزير',subj:'استثناء من التدرج الطبي',name:'req',f:[],
   b:v=>`نرفق اليكم طلب ${v.sir} (${v.n}) ${v.emp} في وزارتكم الموقرة، المتضمن طلب استثنائ${v.h} من التدرج الطبي.`},
@@ -33478,7 +33494,7 @@ const T=[
  {id:'health_substitute',g:'وزارة الصحة',to:'وزارة الصحة – مكتب الوزير',subj:'تعيين بديلاً عن والده',name:'req',
   f:[{k:'cause',l:'سبب وفاة / انتهاء خدمة الأب',d:'خلال جائحة كورونا'}],
   b:v=>`نرفق اليكم طلب ${v.sir} (${v.n})، المتضمن طلب تعيين${v.h} بديلاً عن والد${v.h} الموظف على ملاك وزارتكم الموقرة والمتوفى ${v.cause}.`},
- {id:'health_noobj',g:'وزارة الصحة',to:'وزارة الصحة – مكتب الوزير',subj:'عدم ممانعة',name:'none',f:[],
+ {id:'health_noobj',g:'وزارة الصحة',to:'وزارة الصحة – مكتب الوزير',subj:'عدم ممانعة',tag:'قائمة أسماء',name:'none',f:[],
   tbl:{cols:['الاسم الثلاثي','الكلية / الجامعة','المرحلة']},
   b:v=>`نرفق اليكم طلب السادة المدرجة اسماؤهم ادناه، المتضمن طلب منحهم عدم ممانعة لغرض اكمال دراستهم الاولية (البكالوريوس).`},
  {id:'edu_retire',g:'وزارة التربية',to:'وزارة التربية – مكتب الوزير',subj:'احالة الى التقاعد',name:'req',
@@ -33621,8 +33637,113 @@ const T=[
   b:v=>`نرفق اليكم طلب ${v.sir} (${v.n})${v.raw.dept?` ${v.emp} ${v.raw.dept}`:''}، المتضمن طلب استكمال اجراءات ${v.what}${wy(v)}.`},
  {id:'general',g:'عام',to:'وزارة الداخلية – مكتب الوزير',subj:'التماس (صياغة حرة)',ps:'التماس',name:'req',
   f:[{k:'req',l:'ما يتضمنه الالتماس',ta:1,ph:'مثال: طلب تعيينه على ملاك الوزارة'},WHY],
-  b:v=>`نرفق اليكم طلب ${v.sir} (${v.n})، المتضمن ${v.req}${wy(v)}.`}
+  b:v=>`نرفق اليكم طلب ${v.sir} (${v.n})، المتضمن ${v.req}${wy(v)}.`},
+ {id:'kikard',g:'وزارة العمل والشؤون الاجتماعية',tag:'بطاقة الكي كارد',to:'وزارة العمل والشؤون الاجتماعية',fm:1,subj:'اكمال اجراءات',name:'none',f:[],
+  tbl:{cols:['الاسم الثلاثي','اسم الام الثلاثي'],sep:1},att:'قائمة اسماء',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على اصدار بطاقة الكي كارد للذوات المدرجة اسماؤهم بالقائمة طيا والتي تبدأ بالتسلسل (١) ${v.t1} وتنتهي بالتسلسل (${v.tn}) ${v.tl} لكون ظروفهم المعيشية صعبة ومن ذوي الدخل المحدود وذلك خدمة للصالح العام.`},
+ {id:'labor_master',g:'وزارة العمل والشؤون الاجتماعية',to:'وزارة العمل والشؤون الاجتماعية',fm:1,subj:'شمول براتب المعين المتفرغ',name:'none',f:[],
+  tbl:{cols:['اسم المريض','اسم المعين'],sep:1},att:'قائمة اسماء',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على شمول الذوات المدرجة اسماؤهم بالقائمة طيا براتب المعين المتفرغ والتي تبدأ بالتسلسل (١) ${v.t1} وتنتهي بالتسلسل (${v.tn}) ${v.tl} لكون ظروفهم المعيشية صعبة ومن ذوي الدخل المحدود وذلك خدمة للصالح العام.`},
+ {id:'labor_care',g:'وزارة العمل والشؤون الاجتماعية',to:'وزارة العمل والشؤون الاجتماعية',fm:1,subj:'شمول برواتب الرعاية الاجتماعية',name:'none',f:[],
+  tbl:{cols:['الاسم الثلاثي','اسم الام'],sep:1},att:'قائمة اسماء',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على شمول الذوات المدرجة اسماؤهم بالقائمة طيا برواتب الرعاية الاجتماعية والتي تبدأ بالتسلسل (١) ${v.t1} وتنتهي بالتسلسل (${v.tn}) ${v.tl} لكون ظروفهم المعيشية صعبة ومن ذوي الدخل المحدود وذلك خدمة للصالح العام.`},
+
+ {id:'h_treat',g:'وزارة الصحة',to:'وزارة الصحة',fm:1,subj:'علاج',name:'req',
+  f:[{k:'purp',l:'غرض العملية',d:'تصحيح البصر'},{k:'cost',l:'تكلفة العملية (رقماً ووحدة)',d:'8 مليون'},LIV],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('المواطن','المواطنة')} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تكلفة علاج${v.h} واجراء العملية ${v.li} لغرض ${v.purp} علما ان تكلفة العملية (${v.cost})${v.liv?' '+v.liv:''} وذلك خدمة للصالح العام.`},
+ {id:'h_cert_except',g:'وزارة الصحة',tag:'احتساب شهادة',to:'وزارة الصحة',fm:1,subj:'استثناء',name:'req',
+  f:[{k:'dept',l:'دائرة العمل',d:'دائرة صحة ذي قار'},{k:'ct',l:'الشهادة الحالية',d:'دبلوم تمريض'},{k:'ctl',l:'العنوان الحالي',d:'رئيس ممرضة اقدم'},{k:'nt',l:'الشهادة المراد احتسابها',d:'بكالوريوس قانون'},{k:'ntl',l:'العنوان المطلوب',d:'مشاور قانوني'},{k:'stage',l:'المرحلة',d:'4/4'},{k:'univ',l:'الجامعة',d:'جامعة ذي قار'},{k:'yr',l:'العام',d:'2023/2024'},{k:'svc',l:'سنوات الخدمة',d:'13'}],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('المنسوب','المنسوبة')} الى وزارتكم الموقرة ${v.dept} ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على احتساب شهادت${v.h} واستثنائ${v.h} من ضوابط احتساب الشهادة للعناوين المغايرة من (${v.ct}) بعنوان ${v.ctl} الى (${v.nt}) بعنوان ${v.ntl} وابقائ${v.h} بنفس الدرجة الوظيفية المرحلة (${toAr(v.stage)}) ولكون${v.h} ${v.has} على شهادة ${v.nt} من ${v.univ} للعام ${toAr(v.yr)} ول${v.ld} خدمة اكثر من (${toAr(v.svc)} سنة) و${v.g('مستمر','مستمرة')} بالعمل الاداري ولم ${v.g('يمارس','تمارس')} اختصاص${v.h} بشهادة ${v.ct} وذلك خدمة للصالح العام.`},
+ {id:'h_study_noobj',g:'وزارة الصحة',tag:'إكمال دراسة',to:'وزارة الصحة',fm:1,subj:'عدم ممانعة',name:'req',hello:'نهديكم أطيب التحيات ...',
+  f:[{k:'title',l:'الصفة',d:'الممرض الفني'},{k:'coll',l:'جهة الدراسة',d:'كلية الحلة الجامعة'},{k:'yr',l:'العام الدراسي',d:'2025-2024'},{k:'dep',l:'القسم المراد',d:'تقنيات التخدير'},{k:'cur',l:'الشهادة الحالية',d:'الدبلوم / قسم تقنيات التمريض'}],att:'طلب الموما اليه ..',close:()=>'مع فائق الشكر والتقدير ...',
+  b:v=>`نرافق لكم ربطاً طلب ${v.title} (${v.n}) ${v.g('والذي يروم','والتي تروم')} في طلب${v.h} موافقة معاليكم لأكمال دراست${v.h} في ${v.coll} لسنة (${toAr(v.yr)}) قسم ${v.dep}، علماً ان${v.h} ${v.has} على شهادة ${v.cur}\nراجين النظر في طلب${v.h} خدمة للصالح العام ..`},
+ {id:'h_appoint',g:'وزارة الصحة',tag:'خريج',to:'وزارة الصحة',fm:1,subj:'تعيين',name:'req',
+  f:[{k:'cert',l:'الشهادة',d:'البكالوريوس'},{k:'spec',l:'الاختصاص',d:'التقنيات الصحية والطبية/ قسم تقنيات المختبرات الطبية'},{k:'yr',l:'سنة التخرج',d:'2023'},
+     {k:'mar',l:'صفة الطالب',sel:[['من ذوي الشهداء بالدرجة الاولى','وكون{h} من (ذوي الشهداء) بالدرجة الاولى'],['من ذوي الشهداء','وكون{h} من (ذوي الشهداء)'],['بدون ذكر','']]},LIV2],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('الخريج','الخريجة')} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تعيين${v.h} كون${v.h} ${v.has} على شهادة ${v.cert} واختصاص (${v.spec}) لسنة ${toAr(v.yr)}${v.mar?' '+v.mar:''}${v.liv2?' '+v.liv2:''} وذلك خدمة للصالح العام.`},
+ {id:'h_appoint_except',g:'وزارة الصحة',tag:'تعيين ضمن المجموعة الطبية',to:'وزارة الصحة',fm:1,subj:'استثناء',name:'req',
+  f:[{k:'spec',l:'الاختصاص',d:'تحليلات مرضية'},{k:'yr',l:'الدفعة',d:'2023'},{k:'dis',l:'الحالة المرضية',d:'مرضى السرطان'},{k:'trt',l:'نوع العلاج',d:'الكيمياوي'}],att:'الطلب\nكافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('الخريج','الخريجة')} (${v.n}) اختصاص ${v.spec} دفعة (${toAr(v.yr)}) ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على استثنائ${v.h} بالتعيين ضمن المجموعة الطبية كون${v.h} من (${v.dis}) و${v.g('تمكن','تمكنت')} من اكمال دراست${v.h} رغم العلاجات المستمرة بالعلاج (${v.trt}) وكون${v.h} من ذوي الدخل المحدود وذلك خدمة للصالح العام.`},
+ {id:'h_transfer2',g:'وزارة الصحة',tag:'وزارة الصحة (إلى جهة أخرى)',to:'وزارة الصحة',fm:1,subj:'نقل',name:'req',
+  f:[{k:'from',l:'جهة العمل الحالية',d:'دائرة صحة'},{k:'dest',l:'الجهة المنقول إليها',d:'هيئة الضمان الصحي/ وحدة الضمان الصحي'}],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('المنسوب','المنسوبة')} الى ${v.from} ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على نقل${v.h} من الدائرة اعلاه الى (${v.dest}) وذلك خدمة للصالح العام.`},
+ {id:'h_transfer3',g:'وزارة الصحة',tag:'وزارة الصحة (داخل الدائرة)',to:'وزارة الصحة',fm:1,subj:'نقل',name:'req',
+  f:[{k:'title',l:'الصفة',d:'تقني تحليلات مرضية'},{k:'dept',l:'الدائرة',d:'دائرة صحة ذي قار'},{k:'from',l:'النقل من',d:'مستشفى الناصرية التعليمي'},{k:'dest',l:'النقل إلى',d:'قسم الطبابة العدلية في نفس الدائرة'},{k:'cert',l:'الشهادة',d:'البكالوريوس (تقني تحليلات مرضية)'}],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.title} (${v.n}) ${v.g('والمنسوب','والمنسوبة')} لـ${v.dept} ${v.g('الذي يروم','التي تروم')} فيه طلب نقل${v.h} من ${v.from} الى ${v.dest} مع العلم ان${v.h} ${v.has} على شهادة ${v.cert} يرجى النظر بطلب${v.h} وذلك خدمة للصالح العام.`},
+ {id:'cert_count',g:'وزارة الصحة',to:'وزارة الصحة',fm:1,subj:'احتساب شهادة',name:'req',
+  f:[{k:'cert',l:'الشهادة',d:'البكالوريوس في القانون'},{k:'title',l:'العنوان الوظيفي',d:'كاتب'}],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على احتساب شهادة (${v.cert}) مطابقة لعنوان${v.h} الوظيفي (${v.title}) وتم اخبار دائرت${v.h} بان${v.h} ${v.g('مستمر','مستمرة')} بالدراسة المسائية وقد تم اصدار امر اداري بموافقة دائرت${v.h} بالخروج قبل ساعه من انتهاء الدوام الرسمي لغرض اكمال دراست${v.h} المسائية وذلك خدمة للصالح العام.`},
+ {id:'phd_count',g:'وزارة الصحة',to:'وزارة الصحة',fm:1,subj:'احتساب شهادة الدكتوراه',name:'req',
+  f:[{k:'spec',l:'الاختصاص',d:'علم الحياة /المناعة السريرية'},{k:'law',l:'رقم القانون',d:'20'},{k:'year',l:'سنة القانون',d:'2020'}],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`يرجى التفضل بالموافقة على احتساب شهادة الدكتوراه ${v.g('للدكتور','للدكتورة')} (${v.n}) في اختصاص (${v.spec}) واستنادا لقانون(${toAr(v.law)}) لسنة (${toAr(v.year)}) علما ان شهادت${v.h} لا تتعارض مع اوقات دوام${v.h} الرسمي وتمت مخاطبة الوزارة من قبل دائرت${v.h} بالحاجة الماسة لشهادت${v.h} وتم توفر الاعتماد المالي لغرض الاحتساب وذلك خدمة للصالح العام.`},
+ {id:'h_master_noobj',g:'وزارة الصحة',tag:'ماجستير خارج العراق',to:'وزارة الصحة',fm:1,subj:'عدم ممانعة',name:'req',
+  f:[{k:'title',l:'الصفة',sel:[['الطبيب','{الطبيب|الطبيبة}'],['الصيدلاني','{الصيدلاني|الصيدلانية}'],['الممرض','{الممرض|الممرضة}']]},{k:'dept',l:'جهة العمل',d:'دائرة صحة ذي قار/قطاع البطحاء الصحي'},{k:'deg',l:'الدراسة',d:'الماجستير'},{k:'spec',l:'التخصص',d:'صناعة الاسنان'}],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.title} (${v.n}) ${v.g('المنسوب','المنسوبة')} الى ${v.dept} ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على منح${v.h} عدم ممانعة لغرض اكمال دراسة (${v.deg}) خارج العراق وبتخصص ${v.spec} علما ان${v.h} ${v.g('اكمل','اكملت')} فترة التدرج الصحي وذلك خدمة للصالح العام.`},
+
+ {id:'oil_grant',g:'وزارة النفط',to:'وزارة النفط',fm:1,subj:'منحة',name:'req',f:[],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تخصيص منحة او سلفة لسد احتياجات${v.h} المعيشية كون${v.h} ${v.g('يسكن','تسكن')} في الايجار وظروف${v.h} المعيشية صعبة وذلك خدمة للصالح العام.`},
+ {id:'oil_contract',g:'وزارة النفط',to:'وزارة النفط',fm:1,subj:'تغيير جهة تعاقد',name:'req',
+  f:[{k:'from',l:'الجهة الحالية',d:'الشركة العامة لتعبئة وخدمات الغاز'},{k:'dest',l:'الجهة المطلوبة',d:'شركة نفط ذي قار'},{k:'why3',l:'السبب',d:'بعد المسافة عن سكنه'}],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تغيير جهة التعاقد من (${v.from}) الى (${v.dest}) بسبب ${v.why3} وذلك خدمة للصالح العام.`},
+ {id:'confirm_req',g:'وزارة النفط',to:'وزارة النفط',fm:1,subj:'تأكيد طلب',name:'req',
+  f:[{k:'no',l:'رقم الكتاب',d:''},{k:'dt',l:'تاريخ الكتاب',d:''},{k:'what',l:'نوع الطلب',sel:[['نقل','نقل'],['نقل خدمات','نقل خدمات']]},{k:'from',l:'من (الوزارة)',d:'وزارة الصحة'},{k:'dest',l:'إلى (الوزارة)',d:'وزارة النفط'}],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`كتابكم المرقم ذي العدد (${toAr(v.no)} في ${toAr(v.dt)}) المتضمن طلب ${v.what} ${v.emp} (${v.n}) ${v.g('الذي حصل','التي حصلت')} على موافقة معاليكم بنقل${v.h} من (${v.from}) الى (${v.dest}) وحسب رقم الكتاب اعلاه راجين الاجابة واعلامنا وذلك خدمة للصالح العام.`},
+ {id:'oil_noobj',g:'وزارة النفط',tag:'قبول في شركة',to:'وزارة النفط',fm:1,subj:'عدم ممانعة',name:'req',
+  f:[{k:'dest',l:'جهة القبول',d:'شركة مصافي الوسط/ مصفى كربلاء المقدسة'},{k:'rules',l:'الضوابط المستثناة منها',d:'……'},{k:'cert',l:'الشهادة',d:'البكالوريوس في التمريض العام'},{k:'yrs',l:'سنوات الخدمة',d:''}],att:'طلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على منح${v.h} عدم ممانعة على قبول${v.h} في وزارتكم الموقرة/ ${v.dest} بالدرجة والتخصيص المالي واستثنائ${v.h} من ضوابط ${v.rules} لوزارتكم كون${v.h} ${v.has} على شهادة ${v.cert} ول${v.ld} خدمة ${toAr(v.yrs)} سنوات وذلك خدمة للصالح العام.`},
+ {id:'in_license',g:'وزارة الداخلية',tag:'رخصة / اجازة سلاح',to:'وزارة الداخلية',fm:1,subj:'رخصة سلاح',name:'req',
+  f:[{k:'act',l:'نوع الطلب',sel:[['منح رخصة سلاح','منح{h} رخصة سلاح'],['تجديد اجازة سلاح (حيازة وحمل)','تجديد اجازة سلاح حيازة وحمل']]},{k:'wt',l:'نوع السلاح',d:'مسدس'},{k:'dur',l:'المدة',d:'خمس سنوات'},{k:'ex',l:'الاستثناء',sel:[['استثناء من الشروط والضوابط','واستثنائ{h} من الشروط والضوابط'],['بدون','']]},{k:'rs',l:'سبب الطلب',sel:[['لحاجته الماسة اليه','لحاجت{h} الماسة اليه'],['لحاجته الماسة اليه + يسكن في المناطق النائية','لحاجت{h} الماسة اليه وكون{h} يسكن في المناطق النائية']]},{k:'who2',l:'الصفة / السكن',d:'من سكنة محافظة ذي قار'}],att:'الطلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('المواطن','المواطنة')} (${v.n}) ${v.who2} ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على ${v.act} نوع (${v.wt}) لمدة (${v.dur}) ${v.ex} ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_fund_one',g:'وزارة الداخلية',tag:'صندوق شهداء الشرطة (فرد)',to:'وزارة الداخلية',fm:1,subj:'منحة مالية',ps:'منحة / سلفة / مكافأة مالية',name:'req',
+  f:[{k:'unit',l:'جهة الانتساب',d:'مديرية شرطة ……'},{k:'kind',l:'نوع المبلغ',sel:[['منحة مالية','منح{h} منحة مالية'],['سلفة','منح{h} سلفة'],['مكافأة مالية','منح{h} مكافأة مالية'],['مساعدة مالية','منح{h} مساعدة مالية']]},{k:'amt',l:'المبلغ (رقماً وكتابة)',d:'(١٠ مليون دينار)'},{k:'rs',l:'التعليل',sel:[['بحاجة ماسة لها','كون{h} بحاجة ماسة لها'],['المعيل الوحيد لعائلته','كون{h} {المعيل الوحيد|المعيلة الوحيدة} لعائلت{h}'],['بحاجة ماسة + يسكن بالايجار','كون{h} بحاجة ماسة لها ويسكن بالايجار']]}],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.sir} (${v.n}) ${v.g('المنسوب','المنسوبة')} الى ${v.unit} ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على ${v.kind} قدرها ${v.amt} من صندوق شهداء الشرطة ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_fund_list',g:'وزارة الداخلية',tag:'صندوق شهداء الشرطة (قائمة)',to:'وزارة الداخلية',fm:1,subj:'منحة مالية',ps:'منحة / مكافأة / سلفة مالية',name:'none',
+  f:[{k:'kind',l:'نوع المبلغ',sel:[['منحة مالية','منحة مالية'],['مكافأة مالية','مكافأة مالية'],['سلفة','سلفة'],['مساعدة مالية','مساعدة مالية']]},{k:'amt',l:'المبلغ لكل شخص',d:'(مليون دينار)'},{k:'rs',l:'التعليل',sel:[['لجهودهم المبذولة ولحاجتهم الماسة','لجهودهم المبذولة ولحاجتهم الماسة لها'],['لجهودهم المبذولة فقط','لجهودهم المبذولة'],['بحاجة ماسة','وبحاجة ماسة لها']]}],tbl:{cols:['الاسم الثلاثي','الرتبة','جهة الانتساب']},att:'',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على منح السادة المدرجة اسماؤهم ادناه ${v.kind} قدرها ${v.amt} من صندوق شهداء الشرطة كونهم منسوبين الى وزارتكم الموقرة ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_gun_list',g:'وزارة الداخلية',tag:'قائمة أسماء',to:'وزارة الداخلية',fm:1,subj:'شراء مسدس',name:'none',
+  f:[{k:'wt',l:'نوع المسدس',d:'HS'},{k:'src',l:'جهة الشراء',d:'المركز التسويقي لشهداء الشرطة'}],tbl:{cols:['الاسم الثلاثي','الرتبة','جهة الانتساب']},att:'',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب السادة المدرجة اسماؤهم ادناه الذين يرومون بطلبهم الموافقة على شراء مسدس نوع (${v.wt}) من ${v.src} كونهم منتسبين في وزارتكم الموقرة ويسكنون في المناطق النائية وذلك خدمة للصالح العام.`},
+ {id:'in_transfer_x',g:'وزارة الداخلية',tag:'نقل (تفصيلي)',to:'وزارة الداخلية',fm:1,subj:'نقل',name:'req',
+  f:[{k:'rk',l:'الصفة',sel:[['المنتسب','{المنتسب|المنتسبة}'],['الموظف','{الموظف|الموظفة}'],['المفوض','المفوض'],['الضابط','الضابط'],['الشرطي','{الشرطي|الشرطية}']]},{k:'cur',l:'جهة الانتساب الحالية',d:'قيادة شرطة ……'},{k:'from',l:'النقل من',d:'……'},{k:'dest',l:'النقل إلى',d:'……'},WHY],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.rk} (${v.n}) ${v.g('المنسوب','المنسوبة')} الى ${v.cur} ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على نقل${v.h} من (${v.from}) الى (${v.dest})${wy(v)} وذلك خدمة للصالح العام.`},
+ {id:'in_exempt_study',g:'وزارة الداخلية',tag:'استثناء من شرط القبول',to:'وزارة الداخلية',fm:1,subj:'استثناء',name:'req',
+  f:[{k:'stage',l:'الدراسة',d:'الاعدادية الفرع المهني'},{k:'yr',l:'العام والدور',d:'٢٠٢٤ الدور الاول'},{k:'avg',l:'المعدل',d:''},{k:'what',l:'الاستثناء من',d:'شرط المعدل في الدورة (……)'},{k:'rel',l:'علماً أن',sel:[['والده منتسب في وزارة الداخلية','والد{h} منتسب في القوات الامنية في وزارة الداخلية'],['والده شهيد','والد{h} شهيد'],['والده متقاعد من وزارة الداخلية','والد{h} متقاعد من وزارة الداخلية'],['والده جريح','والد{h} جريح']]}],att:'الطلب',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.stu} (${v.n}) ${v.g('خريج','خريجة')} الدراسة ${v.stage} للعام ${v.yr}${v.avg&&v.raw.avg?` وبمعدل (${toAr(v.avg)})`:''} ${v.g('والذي يروم','والتي تروم')} بطلب${v.h} الموافقة على استثنائ${v.h} من ${v.what} علماً ان ${v.rel} وذلك خدمة للصالح العام.`},
+ {id:'in_accept_course',g:'وزارة الداخلية',tag:'قبول في دورة / كلية',to:'وزارة الداخلية',fm:1,subj:'طلب',ps:'قبول',name:'req',
+  f:[{k:'course',l:'الدورة / الكلية',d:'دورة (اعداد مفوضي الشرطة)'},{k:'rs',l:'التعليل',sel:[['من ذوي الشهداء','كون{h} من ذوي الشهداء'],['من ذوي السجناء السياسيين','كون{h} من ذوي السجناء السياسيين'],['من ذوي الجرحى','كون{h} من ذوي الجرحى'],['بحاجة ماسة','لحاجت{h} الماسة لذلك']]}],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('المواطن','المواطنة')} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على قبول${v.h} في ${v.course} ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_noconflict',g:'وزارة الداخلية',tag:'عدم تعارض دوام',to:'وزارة الداخلية',fm:1,subj:'عدم تعارض',name:'req',
+  f:[{k:'unit',l:'جهة الانتساب',d:'مديرية ……'},{k:'dest',l:'الجهة (الدراسية)',d:'وزارة التعليم العالي والبحث العلمي'},{k:'cert',l:'الشهادة / الغرض',d:'شهادة الماجستير'}],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('المنسوب','المنسوبة')} في ${v.unit} ${v.g('والذي يروم','والتي تروم')} موافقة معاليكم على تزويد${v.h} (بعدم تعارض) بين دوام${v.h} واوقات الدوام الرسمي لـ${v.dest}، كون${v.h} ${v.has} على ${v.cert} ولحاجت${v.h} الماسة وذلك خدمة للصالح العام.`},
+ {id:'in_noobj_study',g:'وزارة الداخلية',tag:'إكمال دراسة (قائمة)',to:'وزارة الداخلية',fm:1,subj:'عدم ممانعة',name:'none',
+  f:[{k:'deg',l:'الدراسة المطلوبة',d:'الماجستير'},{k:'country',l:'مكان الدراسة',d:'خارج العراق وفي الجمهورية الايرانية الاسلامية'},{k:'cert',l:'الشهادة الحاصلين عليها',d:'البكالوريوس'}],tbl:{cols:['الاسم الثلاثي','الصفة / الرتبة','الاختصاص']},att:'',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على منح السادة المدرجة اسماؤهم ادناه عدم ممانعة لغرض اكمال دراسة (${v.deg}) ${v.country} كونهم حاصلين على شهادة ${v.cert} وذلك خدمة للصالح العام.`},
+ {id:'in_meet',g:'وزارة الداخلية',tag:'مقابلة معالي الوزير',to:'وزارة الداخلية',fm:1,subj:'مقابلة',name:'req',
+  f:[{k:'rs',l:'سبب المقابلة',d:'من ذوي شهداء الواجب في وزارتكم الموقرة'}],att:'كافة الاوليات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('المواطن','المواطنة')} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على مقابلة معاليكم لظروف${v.h} الخاصة ومظلومي${v.h==='ها'?'تها':'ته'} لكون${v.h} ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_pay',g:'وزارة الداخلية',tag:'صرف مستحقات',to:'وزارة الداخلية',fm:1,subj:'صرف مستحقات',name:'req',
+  f:[{k:'rk',l:'الصفة',sel:[['المفوض','المفوض'],['المنتسب','{المنتسب|المنتسبة}'],['الموظف','{الموظف|الموظفة}'],['المواطن','{المواطن|المواطنة}']]},{k:'what',l:'المطلوب صرفه',sel:[['مستحقاته المالية','مستحقات{h} المالية'],['اجور العملية','اجور العملية'],['رواتب السنوات السابقة','رواتب السنوات السابقة'],['المخصصات المتوقفة','المخصصات المتوقفة']]},{k:'det',l:'تفاصيل',d:'وحسب الكتب المرفقة طيا'}],att:'كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.rk} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على صرف ${v.what} ${v.det} وذلك خدمة للصالح العام.`},
+ {id:'in_verify',g:'وزارة الداخلية',tag:'صحة صدور',to:'وزارة الداخلية',fm:1,subj:'صحة صدور وثيقة',name:'req',
+  f:[{k:'doc',l:'الوثيقة',d:'الكتاب'},{k:'no',l:'رقم الكتاب',d:''},{k:'dt',l:'تاريخه',d:''}],att:'الطلب + الوثيقة',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تأييد صحة صدور ${v.doc} المرقم ذي العدد (${toAr(v.no)} في ${toAr(v.dt)}) وذلك خدمة للصالح العام.`},
+ {id:'in_namefix',g:'وزارة الداخلية',tag:'تصحيح اسم',to:'وزارة الداخلية',fm:1,subj:'تصحيح اسم',name:'req',
+  f:[{k:'from',l:'الاسم الحالي (الخطأ)',d:''},{k:'to',l:'الاسم الصحيح',d:''}],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.emp} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على تصحيح اسم${v.h} من (${v.from}) الى (${v.to}) وحسب الوثائق الرسمية المرفقة وذلك خدمة للصالح العام.`},
+ {id:'in_cancel_list',g:'وزارة الداخلية',tag:'الغاء امر نقل (قائمة)',to:'وزارة الداخلية',fm:1,subj:'الغاء امر نقل',name:'none',
+  f:[{k:'ord',l:'رقم وتاريخ الامر',d:''},{k:'rs',l:'السبب',d:'لحاجة العمل وللظروف الخاصة بهم'}],tbl:{cols:['الاسم الثلاثي','الرتبة','النقل من','النقل إلى']},att:'',close:()=>SHK,
+  b:v=>`تفضلكم بالموافقة على الغاء امر نقل السادة المدرجة اسماؤهم ادناه الصادر بموجب الامر الاداري المرقم (${toAr(v.ord)}) ${v.rs} وذلك خدمة للصالح العام.`},
+ {id:'in_title_list',g:'وزارة الداخلية',tag:'قائمة أسماء',to:'وزارة الداخلية',fm:1,subj:'تغيير عنوان وظيفي',name:'none',f:[],
+  tbl:{cols:['الاسم الثلاثي','العنوان الوظيفي الحالي','العنوان المراد']},att:'',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب السادة المدرجة اسماؤهم ادناه الموظفين على ملاك وزارتكم الموقرة، الذين يرومون تغيير عناوينهم الوظيفية وحسب ما مؤشر ازاء كل منهم وذلك خدمة للصالح العام.`},
+ {id:'in_assign_post',g:'وزارة الداخلية',tag:'اسناد منصب',to:'وزارة الداخلية',fm:1,subj:'اسناد منصب',name:'req',
+  f:[{k:'rk',l:'الصفة / الرتبة',d:'العقيد'},{k:'post',l:'المنصب المطلوب',d:''},{k:'unit',l:'الجهة',d:''}],att:'الطلب + السيرة الذاتية',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.rk} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} الموافقة على اسناد منصب (${v.post}) في ${v.unit} نظراً لكفاءت${v.h} وخبرت${v.h} وذلك خدمة للصالح العام.`},
+ {id:'in_facilities',g:'وزارة الداخلية',tag:'تسهيلات',to:'وزارة الداخلية',fm:1,subj:'تسهيلات',name:'req',
+  f:[{k:'what',l:'المعاملة المطلوب تسهيلها',d:''}],att:'الطلب + كافة المرفقات',close:()=>SHK,
+  b:v=>`نرفق لمعاليكم طلب ${v.g('المواطن','المواطنة')} (${v.n}) ${v.g('الذي يروم','التي تروم')} بطلب${v.h} تقديم التسهيلات اللازمة لإنجاز ${v.what} وفق الضوابط والتعليمات وذلك خدمة للصالح العام.`}
 ];
+
 
 /* ============ الجهات المخاطَبة ============ */
 const MIN=['وزارة الدفاع','وزارة الداخلية','وزارة الخارجية','وزارة المالية','وزارة النفط','وزارة الكهرباء','وزارة التجارة','وزارة الصحة','وزارة التربية','وزارة التعليم العالي والبحث العلمي','وزارة العدل','وزارة العمل والشؤون الاجتماعية','وزارة الزراعة','وزارة الموارد المائية','وزارة الإعمار والإسكان والبلديات والأشغال العامة','وزارة النقل','وزارة الاتصالات','وزارة الصناعة والمعادن','وزارة الثقافة والسياحة والآثار','وزارة الشباب والرياضة','وزارة التخطيط','وزارة الهجرة والمهجرين','وزارة البيئة'];
@@ -33649,9 +33770,9 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'
 
 // قائمة الجهات
 $('ent').innerHTML=GROUPS.map(g=>`<optgroup label="${g.label}">${g.idx.map(i=>`<option value="${i}">${ENTS[i].n}</option>`).join('')}</optgroup>`).join('')+'<option value="c">جهة أخرى (كتابة العنوان كاملاً)</option>';
-function officeUi(){const c=$('ent').value==='c';$('officeLbl').textContent=c?'العنوان كاملاً':'المكتب / القسم';$('office').placeholder=c?'مثال: السيد المدير العام المحترم':''}
+function officeUi(){const c=$('ent').value==='c';$('officeLbl').textContent=c?'العنوان كاملاً':((cur()&&cur().fm)?'المكتب (فارغ = معالي الوزير)':'المكتب / القسم');$('office').placeholder=c?'مثال: السيد المدير العام المحترم':''}
 function setAddr(s){const r=resolveTo(s);$('ent').value=r.i<0?'c':String(r.i);$('office').value=r.office;officeUi()}
-function toLine(){const e=$('ent').value,off=$('office').value.trim();if(e==='c')return off||'……………';return ENTS[+e].n+(off?' – '+off:'')}
+function toLine(){const e=$('ent').value,off=$('office').value.trim();if(e==='c')return off||'……………';const E=ENTS[+e];if(cur().fm&&!off&&E.n.startsWith('وزارة '))return 'السيد معالي وزير '+E.n.slice(6)+' المحترم';return E.n+(off?' – '+off:'')}
 
 // قائمة القوالب (مرتبة أبجدياً، بلا تجميع بالوزارات)
 const SORTED=T.slice().sort((a,b)=>a.subj.localeCompare(b.subj,'ar'));
@@ -33688,7 +33809,7 @@ function renderExtra(){
 /* ===== الجدول ===== */
 const INTRO='الأسماء المدرجة في الجدول أدناه :';
 const emptyRow=()=>tbl.cols.map(()=>'');
-const tbl={on:false,cols:['الاسم الثلاثي'],rows:[[''],[''],['']],intro:INTRO};
+const tbl={sep:false,on:false,cols:['الاسم الثلاثي'],rows:[[''],[''],['']],intro:INTRO};
 const nonEmptyRows=()=>tbl.on?tbl.rows.filter(r=>r.some(c=>c.trim())):[];
 function normRows(){tbl.rows=tbl.rows.map(r=>tbl.cols.map((_,i)=>r[i]||''));if(!tbl.rows.length)tbl.rows=[emptyRow()]}
 function focusCell(r,c){const el=$('tblEd').querySelector(`input[data-r="${r}"][data-c="${c}"]`);if(el){el.focus();el.select()}}
@@ -33717,9 +33838,11 @@ function renderTbl(){
   });
 }
 function renderPvTbl(){
-  const w=$('pvTbl');w.innerHTML='';const rows=nonEmptyRows();
-  if(!rows.length){w.style.display='none';return}
-  w.style.display='block';
+  $('pvTbl').innerHTML='';$('pvTblSep').innerHTML='';const rows=nonEmptyRows();
+  const w=tbl.sep?$('pvTblSep'):$('pvTbl');
+  $('pvSepMark').className='sepmark'+((tbl.sep&&rows.length)?'':' off');
+  $('pvTbl').style.display=(!tbl.sep&&rows.length)?'block':'none';
+  if(!rows.length)return;
   const t=document.createElement('table'),n=tbl.cols.length;
   const mk=(tag,txt,cls)=>{const e=document.createElement(tag);e.textContent=txt;if(cls)e.className=cls;return e};
   const hr=document.createElement('tr');hr.appendChild(mk('th','ت','n'));tbl.cols.forEach(c=>hr.appendChild(mk('th',c)));
@@ -33738,11 +33861,12 @@ function ctx(){
     sir:multi?'السادة':(fem?'السيدة':'السيد'),emp:fem?'الموظفة':'الموظف',
     h:fem?'ها':'ه',li:fem?'لها':'له',ld:fem?'لديها':'لديه',hal:fem?'الحاصلة':'الحاصل',stu:fem?'الطالبة':'الطالب',
     has:fem?'حاصلة':'حاصل',
-    who:nm?`${fem?'السيدة':'السيد'} (${nm}) عن لفيف`:'لفيف',raw:{}
+    who:nm?`${fem?'السيدة':'السيد'} (${nm}) عن لفيف`:'لفيف',raw:{},g:(m,f)=>fem?f:m
   };
+  {const rr=nonEmptyRows();v.tn=rr.length?toAr(rr.length):'……';v.t1=rr.length?(rr[0][0]||'……'):'……';v.tl=rr.length?(rr[rr.length-1][0]||'……'):'……';}
   t.f.forEach(f=>{
     const el=$('f_'+f.k);
-    if(f.sel){const o=f.sel[+(el?el.value:(f.di||0))]||f.sel[0];v[f.k]=o[1].replace(/\{h\}/g,v.h);v.raw[f.k]=v[f.k]}
+    if(f.sel){const o=f.sel[+(el?el.value:(f.di||0))]||f.sel[0];v[f.k]=o[1].replace(/\{h\}/g,v.h).replace(/\{([^{}|]+)\|([^{}|]+)\}/g,(_,m,f2)=>fem?f2:m);v.raw[f.k]=v[f.k]}
     else{const r=(el?el.value:'').trim();v.raw[f.k]=r;v[f.k]=r||'……………'}
   });
   return v;
@@ -33779,6 +33903,9 @@ function refresh(){
   if(tbl.on&&nonEmptyRows().length&&tbl.intro.trim())b+='\n'+tbl.intro.trim();
   $('pvBody').textContent=b;
   $('pvClose').textContent=t.close?t.close(v):CLOSING;
+  $('pvHello').textContent=t.hello||'تحية طيبة ...';
+  const at=t.att!==undefined?$('att').value.split('\n').map(x=>x.trim()).filter(Boolean):[];
+  $('pvAtt').textContent=at.length?'المرفقات :\n'+at.map(x=>'- '+x).join('\n'):'';
   renderPvTbl();
   refreshFooter();
 }
@@ -33805,7 +33932,7 @@ function fullText(){
   const rows=nonEmptyRows();
   let tb='';
   if(rows.length)tb='\n\n'+[['ت',...tbl.cols].join('\t'),...rows.map((r,i)=>[toAr(i+1),...r].join('\t'))].join('\n');
-  return [$('pvTo').innerText,$('pvSubj').innerText,'تحية طيبة ...',$('pvBody').innerText.trim()+tb,$('pvClose').innerText].join('\n\n');
+  return [$('pvTo').innerText,$('pvSubj').innerText,$('pvHello').innerText,$('pvBody').innerText.trim()+tb,$('pvClose').innerText,$('pvAtt').innerText.trim()].filter(Boolean).join('\n\n');
 }
 
 /* ===== ملف Word ===== */
@@ -33821,14 +33948,14 @@ async function makeDoc(){
   const kids=[
     para($('pvTo').innerText.trim(),{bold:true,after:Math.round(160*k),before:Math.round(Math.max(0,tm-2)*567)}),
     para($('pvSubj').innerText.trim(),{bold:true,align:AlignmentType.CENTER,after:Math.round(360*k)}),
-    para('تحية طيبة ...',{bold:true,after:Math.round(240*k)}),
+    para($('pvHello').innerText.trim(),{bold:true,after:Math.round(240*k)}),
   ];
   const lines=$('pvBody').innerText.trim().split(/\n+/).map(x=>x.trim()).filter(Boolean);
   lines.forEach((ln,i)=>kids.push(para(ln,{align:i===0?AlignmentType.BOTH:AlignmentType.START,line:420,after:i===lines.length-1?Math.round(200*k):Math.round(100*k)})));
 
   // الجدول
   const rows=nonEmptyRows();
-  if(rows.length){
+  const mkTable=()=>{
     const TOTAL=9638,NUMW=640,n=tbl.cols.length,cw0=Math.floor((TOTAL-NUMW)/n),cw=[NUMW,...tbl.cols.map((_,i)=>i===n-1?TOTAL-NUMW-cw0*(n-1):cw0)];
     const TS=Math.max(18,SZ-3),B={style:BorderStyle.SINGLE,size:4,color:'000000'};
     const cell=(text,w,head)=>new TableCell({width:{size:w,type:WidthType.DXA},verticalAlign:VerticalAlign.CENTER,
@@ -33838,11 +33965,13 @@ async function makeDoc(){
         children:[new TextRun({text:String(text),font:FONT,size:TS,bold:!!head,rightToLeft:true})]})]});
     const trs=[new TableRow({tableHeader:true,cantSplit:true,children:[cell('ت',cw[0],true),...tbl.cols.map((c,i)=>cell(c,cw[i+1],true))]})];
     rows.forEach((r,ri)=>trs.push(new TableRow({cantSplit:true,children:[cell(toAr(ri+1),cw[0]),...r.map((c,i)=>cell(c.trim(),cw[i+1]))]})));
-    kids.push(new Table({width:{size:TOTAL,type:WidthType.DXA},columnWidths:cw,layout:TableLayoutType.FIXED,visuallyRightToLeft:true,
-      borders:{top:B,bottom:B,left:B,right:B,insideHorizontal:B,insideVertical:B},rows:trs}));
-    kids.push(para('',{after:Math.round(120*k)}));
-  }
-  kids.push(para($('pvClose').innerText.trim(),{bold:true,align:AlignmentType.CENTER,after:Math.round(400*k),keepNext:true}));
+    return new Table({width:{size:TOTAL,type:WidthType.DXA},columnWidths:cw,layout:TableLayoutType.FIXED,visuallyRightToLeft:true,
+      borders:{top:B,bottom:B,left:B,right:B,insideHorizontal:B,insideVertical:B},rows:trs});
+  };
+  if(rows.length&&!tbl.sep){kids.push(mkTable());kids.push(para('',{after:Math.round(120*k)}))}
+  kids.push(para($('pvClose').innerText.trim(),{bold:true,align:AlignmentType.CENTER,after:Math.round(300*k),keepNext:true}));
+  $('pvAtt').innerText.split('\n').map(x=>x.trim()).filter(Boolean).forEach((ln,i)=>kids.push(para(ln,{bold:i===0,size:Math.round(SZ*0.85),after:0,line:320,keepNext:true})));
+  kids.push(para('',{after:Math.round(200*k)}));
 
   // كتلة التوقيع (في الجهة اليسرى)
   const sig=[];
@@ -33869,6 +33998,7 @@ async function makeDoc(){
     cps.forEach(c=>kids.push(para('❖ '+c,{size:cs,after:0,line:300})));
   }
 
+  if(rows.length&&tbl.sep){kids.push(new Paragraph({pageBreakBefore:true,children:[]}));kids.push(mkTable())}
   const t=cur();
   const doc=new Document({
     creator:'',title:t.ps||t.subj,
@@ -33906,11 +34036,14 @@ function applyTemplate(){
   if(t.tbl){
     tbl.on=true;
     if(tbl.cols.join('|')!==t.tbl.cols.join('|')){tbl.cols=t.tbl.cols.slice();tbl.rows=[emptyRow(),emptyRow(),emptyRow()]}
-    tbl.intro='';
+    tbl.intro='';tbl.sep=!!t.tbl.sep;
   }else if(lastTbl){
-    tbl.on=false;tbl.cols=['الاسم الثلاثي'];tbl.rows=[emptyRow(),emptyRow(),emptyRow()];tbl.intro=INTRO;
+    tbl.sep=false;tbl.on=false;tbl.cols=['الاسم الثلاثي'];tbl.rows=[emptyRow(),emptyRow(),emptyRow()];tbl.intro=INTRO;
   }
   lastTbl=!!t.tbl;
+  if(t.fm)$('office').value='';officeUi();
+  $('attBox').style.display=t.att!==undefined?'block':'none';$('att').value=t.att||'';
+  $('tblSep').checked=tbl.sep;
   $('tblIntro').value=tbl.intro;renderTbl();refresh();say('');
 }
 $('make').onclick=$('make2').onclick=makeDoc;
@@ -33921,7 +34054,9 @@ $('tplSearch').addEventListener('input',()=>{
   const prev=$('tpl').value;buildList($('tplSearch').value);
   if($('tpl').value&&$('tpl').value!==prev)applyTemplate();
 });
-$('ent').addEventListener('change',()=>{const e=$('ent').value;if(e!=='c')$('office').value=ENTS[+e].o;officeUi();refresh()});
+$('ent').addEventListener('change',()=>{const e=$('ent').value;if(e!=='c')$('office').value=cur().fm?'':ENTS[+e].o;officeUi();refresh()});
+$('att').addEventListener('input',refresh);
+$('tblSep').addEventListener('change',()=>{tbl.sep=$('tblSep').checked;refresh()});
 $('office').addEventListener('input',refresh);
 $('name').addEventListener('input',refresh);
 document.querySelectorAll('input[name=g]').forEach(i=>i.addEventListener('change',refresh));
