@@ -137,8 +137,12 @@ summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--brand)}
 
     <div class="two">
       <div><label for="ent">الجهة المخاطَبة <small>(إلى)</small></label><select id="ent"></select></div>
-      <div><label for="office" id="officeLbl">المكتب / الصفة</label><input type="text" id="office" autocomplete="off"></div>
+      <div><label for="office" id="officeLbl">المكتب / الصفة</label><select id="officeSel"></select></div>
     </div>
+    <input type="text" id="office" autocomplete="off" style="display:none;margin-top:8px">
+
+    <label for="opening">بداية الخطاب <small>(تُطبَّق على جميع النماذج)</small></label>
+    <select id="opening"><option value="">تلقائي حسب الجهة (معاليكم للوزير، سيادتكم لغيره)</option><option value="نرفق لمعاليكم">نرفق لمعاليكم</option><option value="نرفق لسيادتكم">نرفق لسيادتكم</option><option value="نرفق اليكم">نرفق اليكم</option></select>
 
     <div id="nameBox">
       <label for="name">الاسم الثلاثي <small id="nameHint"></small></label>
@@ -33817,12 +33821,13 @@ const T=[
 /* ============ الجهات المخاطَبة ============ */
 const MIN=['وزارة الدفاع','وزارة الداخلية','وزارة الخارجية','وزارة المالية','وزارة النفط','وزارة الكهرباء','وزارة التجارة','وزارة الصحة','وزارة التربية','وزارة التعليم العالي والبحث العلمي','وزارة العدل','وزارة العمل والشؤون الاجتماعية','وزارة الزراعة','وزارة الموارد المائية','وزارة الإعمار والإسكان والبلديات والأشغال العامة','وزارة النقل','وزارة الاتصالات','وزارة الصناعة والمعادن','وزارة الثقافة والسياحة والآثار','وزارة الشباب والرياضة','وزارة التخطيط','وزارة الهجرة والمهجرين','وزارة البيئة'];
 const PROV=['بغداد','نينوى','البصرة','ذي قار','ميسان','واسط','بابل','كربلاء','النجف','القادسية','المثنى','الأنبار','صلاح الدين','ديالى','كركوك','أربيل','دهوك','السليمانية','حلبجة'];
+const MOFF={'معالي الوزير':'مكتب الوزير','المحافظ':'مكتب المحافظ','الأمين':'مكتب الأمين','رئيس الديوان':'مكتب رئيس الديوان','الأمين العام':'مكتب الأمين العام','رئيس الهيئة':'مكتب رئيس الهيئة','رئيس المؤسسة':'مكتب رئيس المؤسسة','المدير العام':'مكتب المدير العام'};
 const ENTS=[],GROUPS=[];
 (function(){
-  const G=(label,items)=>{const g={label,idx:[]};items.forEach(([n,o,f])=>{g.idx.push(ENTS.length);ENTS.push({n,o,f})});GROUPS.push(g)};
-  G('الوزارات والدواوين',[...MIN.map(n=>[n,'معالي الوزير','السيد معالي وزير '+n.slice(6)+' المحترم']),['أمانة بغداد','السيد الأمين','السيد أمين بغداد المحترم'],['ديوان الوقف الشيعي','السيد رئيس الديوان','السيد رئيس ديوان الوقف الشيعي المحترم'],['ديوان الوقف السني','السيد رئيس الديوان','السيد رئيس ديوان الوقف السني المحترم']]);
-  G('هيئات ومؤسسات ومصارف',[['الأمانة العامة لمجلس الوزراء','السيد الأمين العام','السيد الأمين العام لمجلس الوزراء المحترم'],['هيئة التقاعد الوطنية','السيد رئيس الهيئة','السيد رئيس هيئة التقاعد الوطنية المحترم'],['هيئة الحشد الشعبي','السيد رئيس الهيئة','السيد رئيس هيئة الحشد الشعبي المحترم'],['الهيئة الوطنية للاستثمار','السيد رئيس الهيئة','السيد رئيس الهيئة الوطنية للاستثمار المحترم'],['مؤسسة الشهداء','السيد رئيس المؤسسة','السيد رئيس مؤسسة الشهداء المحترم'],['مؤسسة السجناء السياسيين','السيد رئيس المؤسسة','السيد رئيس مؤسسة السجناء السياسيين المحترم'],['مصرف الرافدين','السيد المدير العام','السيد المدير العام لمصرف الرافدين المحترم'],['المصرف العقاري','السيد المدير العام','السيد المدير العام للمصرف العقاري المحترم']]);
-  G('المحافظات',PROV.map(p=>['محافظة '+p,'سيادة المحافظ','سيادة محافظ '+p+' المحترم']));
+  const G=(label,items)=>{const g={label,idx:[]};items.forEach(([n,o,f])=>{g.idx.push(ENTS.length);ENTS.push({n,o,f,m:MOFF[o]})});GROUPS.push(g)};
+  G('الوزارات والدواوين',[...MIN.map(n=>[n,'معالي الوزير','السيد معالي وزير '+n.slice(6)+' المحترم']),['أمانة بغداد','الأمين','السيد أمين بغداد المحترم'],['ديوان الوقف الشيعي','رئيس الديوان','سيادة رئيس ديوان الوقف الشيعي المحترم'],['ديوان الوقف السني','رئيس الديوان','سيادة رئيس ديوان الوقف السني المحترم']]);
+  G('هيئات ومؤسسات ومصارف',[['الأمانة العامة لمجلس الوزراء','الأمين العام','السيد الأمين العام لمجلس الوزراء المحترم'],['هيئة التقاعد الوطنية','رئيس الهيئة','سيادة رئيس هيئة التقاعد الوطنية المحترم'],['هيئة الحشد الشعبي','رئيس الهيئة','سيادة رئيس هيئة الحشد الشعبي المحترم'],['الهيئة الوطنية للاستثمار','رئيس الهيئة','سيادة رئيس الهيئة الوطنية للاستثمار المحترم'],['مؤسسة الشهداء','رئيس المؤسسة','سيادة رئيس مؤسسة الشهداء المحترم'],['مؤسسة السجناء السياسيين','رئيس المؤسسة','سيادة رئيس مؤسسة السجناء السياسيين المحترم'],['مصرف الرافدين','المدير العام','السيد المدير العام لمصرف الرافدين المحترم'],['المصرف العقاري','المدير العام','السيد المدير العام للمصرف العقاري المحترم']]);
+  G('المحافظات',PROV.map(p=>['محافظة '+p,'المحافظ','السيد محافظ '+p+' المحترم']));
 })();
 function resolveTo(s){
   const parts=s.split(' – '),a=parts[0].trim(),i=ENTS.findIndex(e=>e.n===a);
@@ -33842,9 +33847,30 @@ const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'
 
 // قائمة الجهات
 $('ent').innerHTML=GROUPS.map(g=>`<optgroup label="${g.label}">${g.idx.map(i=>`<option value="${i}">${ENTS[i].n}</option>`).join('')}</optgroup>`).join('')+'<option value="c">جهة أخرى (كتابة العنوان كاملاً)</option>';
-function officeUi(){const c=$('ent').value==='c';$('officeLbl').textContent=c?'العنوان كاملاً':('المكتب / الصفة');$('office').placeholder=c?'مثال: السيد المدير العام المحترم':''}
-function setAddr(s){const r=resolveTo(s);$('ent').value=r.i<0?'c':String(r.i);$('office').value=r.office;officeUi()}
-function toLine(){const e=$('ent').value,off=$('office').value.trim();if(e==='c')return off||'……………';const E=ENTS[+e];if(!off||off===E.o)return E.f;return E.n+' – '+off}
+const OTHER='__o';
+function getOffice(){const e=$('ent').value;if(e==='c'||$('officeSel').value===OTHER)return $('office').value.trim();return $('officeSel').value}
+function fillOfficeSel(){
+  const e=$('ent').value;if(e==='c')return;const E=ENTS[+e],cur0=$('officeSel').value;
+  $('officeSel').innerHTML=`<option value="${esc(E.o)}">${esc(E.o)}</option><option value="${esc(E.m)}">${esc(E.m)}</option><option value="${OTHER}">أخرى (كتابة)…</option>`;
+  return cur0;
+}
+function officeUi(){
+  const c=$('ent').value==='c',oth=!c&&$('officeSel').value===OTHER;
+  $('officeLbl').textContent=c?'العنوان كاملاً':'المكتب / الصفة';
+  $('officeSel').style.display=c?'none':'';
+  $('office').style.display=(c||oth)?'':'none';
+  $('office').placeholder=c?'مثال: السيد المدير العام المحترم':'مثال: قسم …';
+}
+function setOffice(o){
+  const e=$('ent').value;
+  if(e==='c'){$('office').value=o;officeUi();return}
+  fillOfficeSel();const E=ENTS[+e];
+  if(o===E.o||o===E.m||!o){$('officeSel').value=o||E.o;$('office').value=''}
+  else{$('officeSel').value=OTHER;$('office').value=o}
+  officeUi();
+}
+function setAddr(s){const r=resolveTo(s);$('ent').value=r.i<0?'c':String(r.i);setOffice(r.office)}
+function toLine(){const e=$('ent').value,off=getOffice();if(e==='c')return off||'……………';const E=ENTS[+e];if(!off||off===E.o)return E.f;return E.n+' – '+off}
 
 // قائمة القوالب (مرتبة أبجدياً، بلا تجميع بالوزارات)
 const SORTED=T.slice().sort((a,b)=>a.subj.localeCompare(b.subj,'ar'));
@@ -33980,6 +34006,8 @@ function refresh(){
   $('pvTo').textContent='إلى / '+toLine();
   $('pvSubj').textContent='م / '+(t.ps||t.subj);
   let b=t.b(v);
+  let op=$('opening').value;if(!op){const e=$('ent').value;op=e==='c'?'':(ENTS[+e].o==='معالي الوزير'?'نرفق لمعاليكم':'نرفق لسيادتكم')}
+  if(op)b=b.replace(/^نرفق (اليكم|لمعاليكم|لسيادتكم)/,op);
   if(tbl.on&&nonEmptyRows().length&&tbl.intro.trim())b+='\n'+tbl.intro.trim();
   $('pvBody').textContent=b;
   $('pvClose').textContent=t.close?t.close(v):CLOSING;
@@ -34136,10 +34164,12 @@ $('tplSearch').addEventListener('input',()=>{
   const prev=$('tpl').value;buildList($('tplSearch').value);
   if($('tpl').value&&$('tpl').value!==prev)applyTemplate();
 });
-$('ent').addEventListener('change',()=>{const e=$('ent').value;if(e!=='c')$('office').value=ENTS[+e].o;officeUi();refresh()});
+$('ent').addEventListener('change',()=>{const e=$('ent').value;if(e!=='c')setOffice(ENTS[+e].o);else{$('office').value='';officeUi()}refresh()});
+$('officeSel').addEventListener('change',()=>{officeUi();refresh()});
 $('att').addEventListener('input',refresh);
 $('tblSep').addEventListener('change',()=>{tbl.sep=$('tblSep').checked;refresh()});
 $('office').addEventListener('input',refresh);
+$('opening').addEventListener('change',()=>{store.set('opening',$('opening').value);refresh()});
 $('name').addEventListener('input',refresh);
 document.querySelectorAll('input[name=g]').forEach(i=>i.addEventListener('change',refresh));
 ['date','dirName','dirTitle','cArch','cOut'].forEach(id=>$(id).addEventListener('input',refreshFooter));
@@ -34185,6 +34215,7 @@ window.addEventListener('afterprint',fit);
   $('dirName').value=store.get('dirName','');
   $('dirTitle').value=store.get('dirTitle','مدير مكتب النائب الأول');
   $('depName').value=store.get('depName','');
+  {const o=store.get('opening','');if([...$('opening').options].some(x=>x.value===o))$('opening').value=o}
   $('fs').value=clamp(parseFloat(store.get('fs','15')),10,24,15);
   $('topm').value=clamp(parseFloat(store.get('topm','6')),1,15,6);
   applyTemplate();applyLayout();
